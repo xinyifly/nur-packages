@@ -22,6 +22,7 @@ in {
       host = mkOption { type = str; };
       port = mkOption { type = int; };
       user = mkOption { type = str; };
+      dns = mkOption { type = listOf str; };
       ignores = mkOption {
         type = listOf str;
         default = [ ];
@@ -163,8 +164,8 @@ in {
             debugHTTPAddress: 127.0.0.1:5555
             dohEnabled: false
             primaryDNS:
-              - name: DockerDNS
-                address: 127.0.0.2:53
+              - name: PrimaryDNS
+                address: ${head cfg.dns}
                 protocol: udp
                 socks5Address:
                 timeout: 6
@@ -173,8 +174,8 @@ in {
                   externalIP:
                   noCookie: true
             alternativeDNS:
-              - name: GoogleDNS
-                address: 8.8.4.4:53
+              - name: AlternativeDNS
+                address: ${last cfg.dns}
                 protocol: tcp
                 socks5Address:
                 timeout: 6
@@ -220,5 +221,7 @@ in {
       script = "exec overture";
       serviceConfig = { WorkingDirectory = "${overture}/etc"; };
     };
+    networking.nameservers = [ "127.0.0.1" ];
+    boot.kernel.sysctl."net.ipv6.conf.all.disable_ipv6" = 1;
   };
 }
