@@ -2,7 +2,16 @@
 
 with pkgs;
 with lib;
-let cfg = config.services.xray-redir;
+let
+  cfg = config.services.xray-redir;
+  recursiveMerge = sets:
+    zipAttrsWith (name: values:
+      if all isList values then
+        concatLists values
+      else if all isAttrs values then
+        recursiveMerge values
+      else
+        last values) sets;
 in {
   options = with types; {
     services.xray-redir = {
@@ -16,6 +25,10 @@ in {
       ignores = mkOption {
         type = listOf str;
         default = [ ];
+      };
+      extraConfig = mkOption {
+        type = attrs;
+        default = { };
       };
     };
   };
@@ -66,39 +79,37 @@ in {
       };
     };
     systemd.services.xray = let
-      xray-config = writeText "xray-config.json" ''
-        {
-          "inbounds": [{
-            "port": 1024,
-            "protocol": "dokodemo-door",
-            "settings": {
-              "network": "tcp,udp",
-              "followRedirect": true
-            },
-            "streamSettings": {
-              "sockopt": { "tproxy": "tproxy" }
-            }
-          }],
-          "outbounds": [{
-            "protocol": "vless",
-            "settings": {
-              "vnext": [{
-                "address": "${cfg.host}",
-                "port": ${toString cfg.port},
-                "users": [{
-                  "id": "${cfg.user}",
-                  "flow": "xtls-rprx-splice",
-                  "encryption": "none"
-                }]
-              }]
-            },
-            "streamSettings": {
-              "security": "xtls",
-              "sockopt": { "mark": 2 }
-            }
-          }]
-        }
-      '';
+      basicConfig = {
+        inbounds = [{
+          port = 1024;
+          protocol = "dokodemo-door";
+          settings = {
+            network = "tcp,udp";
+            followRedirect = true;
+          };
+          streamSettings = { sockopt = { tproxy = "tproxy"; }; };
+        }];
+        outbounds = [{
+          protocol = "vless";
+          settings = {
+            vnext = [{
+              address = cfg.host;
+              port = cfg.port;
+              users = [{
+                id = cfg.user;
+                flow = "xtls-rprx-splice";
+                encryption = "none";
+              }];
+            }];
+          };
+          streamSettings = {
+            security = "xtls";
+            sockopt = { mark = 2; };
+          };
+        }];
+      };
+      xray-config = writeText "xray-config.json"
+        (builtins.toJSON (recursiveMerge [ basicConfig cfg.extraConfig ]));
     in {
       wantedBy = [ "multi-user.target" ];
       after = [ "network-online.target" "ipset.service" ];
