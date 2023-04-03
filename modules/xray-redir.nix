@@ -27,7 +27,11 @@ in {
         type = listOf str;
         default = [ ];
       };
-      extraConfig = mkOption {
+      xrayConfig = mkOption {
+        type = attrs;
+        default = { };
+      };
+      overtureConfig = mkOption {
         type = attrs;
         default = { };
       };
@@ -109,8 +113,8 @@ in {
           };
         }];
       };
-      xray-config = writeText "xray-config.json"
-        (builtins.toJSON (recursiveMerge [ basicConfig cfg.extraConfig ]));
+      xrayConfig = writeText "xray-config.json"
+        (builtins.toJSON (recursiveMerge [ basicConfig cfg.xrayConfig ]));
     in {
       wantedBy = [ "multi-user.target" ];
       after = [ "network-online.target" "ipset.service" ];
@@ -134,7 +138,7 @@ in {
         iptables -w -t mangle -A XRAY_SELF -p udp -j MARK --set-mark 1
         iptables -w -t mangle -A OUTPUT -j XRAY_SELF
 
-        exec xray -c ${xray-config}
+        exec xray -c ${xrayConfig}
       '';
       preStop = ''
         ip rule del fwmark 1 table 100
@@ -159,58 +163,67 @@ in {
           stripRoot = false;
         };
         installPhase = let
-          overture-config = writeText "overture-config.yml" ''
-            bindAddress: 127.0.0.1:53
-            debugHTTPAddress: 127.0.0.1:5555
-            dohEnabled: false
-            primaryDNS:
-              - name: PrimaryDNS
-                address: ${head cfg.dns}
-                protocol: udp
-                socks5Address:
-                timeout: 6
-                ednsClientSubnet:
-                  policy: disable
-                  externalIP:
-                  noCookie: true
-            alternativeDNS:
-              - name: AlternativeDNS
-                address: ${last cfg.dns}
-                protocol: tcp
-                socks5Address:
-                timeout: 6
-                ednsClientSubnet:
-                  policy: disable
-                  externalIP:
-                  noCookie: true
-            onlyPrimaryDNS: false
-            ipv6UseAlternativeDNS: false
-            alternativeDNSConcurrent: false
-            whenPrimaryDNSAnswerNoneUse: alternativeDNS
-            ipNetworkFile:
-              primary: ./ip_network_primary_sample
-              alternative: ./ip_network_alternative_sample
-            domainFile:
-              primary: ./domain_primary_sample
-              alternative: ./domain_alternative_sample
-              matcher: full-map
-            hostsFile:
-              hostsFile: ./hosts_sample
-              finder: full-map
-            minimumTTL: 0
-            domainTTLFile: ./domain_ttl_sample
-            cacheSize: 4096
-            cacheRedisUrl:
-            cacheRedisConnectionPoolSize:
-            rejectQType:
-              - 255
-          '';
+          basicConfig = {
+            bindAddress = "127.0.0.1:53";
+            debugHTTPAddress = "127.0.0.1:5555";
+            dohEnabled = false;
+            primaryDNS = [{
+              name = "PrimaryDNS";
+              address = head cfg.dns;
+              protocol = "udp";
+              socks5Address = "";
+              timeout = 6;
+              ednsClientSubnet = {
+                policy = "disable";
+                externalIP = "";
+                noCookie = true;
+              };
+            }];
+            alternativeDNS = [{
+              name = "AlternativeDNS";
+              address = last cfg.dns;
+              protocol = "tcp";
+              socks5Address = "";
+              timeout = 6;
+              ednsClientSubnet = {
+                policy = "disable";
+                externalIP = "";
+                noCookie = true;
+              };
+            }];
+            onlyPrimaryDNS = false;
+            ipv6UseAlternativeDNS = false;
+            alternativeDNSConcurrent = true;
+            whenPrimaryDNSAnswerNoneUse = "alternativeDNS";
+            ipNetworkFile = {
+              primary = "./ip_network_primary_sample";
+              alternative = "./ip_network_alternative_sample";
+            };
+            domainFile = {
+              primary = "./domain_primary_sample";
+              alternative = "./domain_alternative_sample";
+              matcher = "full-map";
+            };
+            hostsFile = {
+              hostsFile = "./hosts_sample";
+              finder = "full-map";
+            };
+            minimumTTL = 0;
+            domainTTLFile = "./domain_ttl_sample";
+            cacheSize = 4096;
+            cacheRedisUrl = "";
+            cacheRedisConnectionPoolSize = 0;
+            rejectQType = [ 255 ];
+          };
+          overtureConfig = writeText "overture-config.yml"
+            (generators.toYAML { }
+              (recursiveMerge [ basicConfig cfg.overtureConfig ]));
         in ''
           mkdir -p $out/bin
           cp overture-linux-amd64 $out/bin/overture
           mkdir -p $out/etc
           cp config.yml *_sample $out/etc/
-          ln -sf ${overture-config} $out/etc/config.yml
+          ln -sf ${overtureConfig} $out/etc/config.yml
           ln -sf ${china-ip-list}/ignore.list $out/etc/ip_network_primary_sample
         '';
       };
