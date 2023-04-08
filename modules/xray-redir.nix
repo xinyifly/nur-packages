@@ -185,7 +185,7 @@ in {
               address = head cfg.dns;
               protocol = "udp";
               socks5Address = "";
-              timeout = 6;
+              timeout = 30;
               ednsClientSubnet = {
                 policy = "disable";
                 externalIP = "";
@@ -197,7 +197,7 @@ in {
               address = last cfg.dns;
               protocol = "tcp";
               socks5Address = "";
-              timeout = 6;
+              timeout = 30;
               ednsClientSubnet = {
                 policy = "disable";
                 externalIP = "";
