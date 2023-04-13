@@ -115,13 +115,13 @@ in {
               port = cfg.port;
               users = [{
                 id = cfg.user;
-                flow = "xtls-rprx-splice";
+                flow = "xtls-rprx-vision";
                 encryption = "none";
               }];
             }];
           };
           streamSettings = {
-            security = "xtls";
+            security = "tls";
             sockopt = { mark = 2; };
           };
         }];
