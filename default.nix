@@ -18,4 +18,5 @@
   # some-qt5-package = pkgs.libsForQt5.callPackage ./pkgs/some-qt5-package { };
   # ...
   kcptun = pkgs.callPackage ./pkgs/kcptun { };
+  xray = pkgs.callPackage ./pkgs/xray { };
 }
