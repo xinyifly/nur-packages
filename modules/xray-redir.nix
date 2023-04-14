@@ -19,9 +19,10 @@ in {
         type = bool;
         default = false;
       };
-      host = mkOption { type = str; };
-      port = mkOption { type = int; };
-      user = mkOption { type = str; };
+      vision = mkOption {
+        type = attrs;
+        default = { };
+      };
       dns = mkOption { type = listOf str; };
       ignores = mkOption {
         type = listOf str;
@@ -107,14 +108,16 @@ in {
           };
           streamSettings = { sockopt = { tproxy = "tproxy"; }; };
         }];
-        outbounds = [{
+        outbounds = if cfg.vision == { } then
+          [ ]
+        else [{
           protocol = "vless";
           settings = {
             vnext = [{
-              address = cfg.host;
-              port = cfg.port;
+              address = cfg.vision.address;
+              port = cfg.vision.port;
               users = [{
-                id = cfg.user;
+                id = cfg.vision.user;
                 flow = "xtls-rprx-vision";
                 encryption = "none";
               }];
