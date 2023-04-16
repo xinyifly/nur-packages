@@ -154,7 +154,7 @@ in {
       in recursiveMerge [ cfg.settings defaults ];
     };
     systemd.services.xray = {
-      path = with pkgs; [ iproute2 iptables gawk ];
+      path = with pkgs; [ iproute2 iptables ];
       serviceConfig = {
         User = "root";
         Group = "xray";
@@ -166,20 +166,14 @@ in {
         ip route add local 0.0.0.0/0 dev lo table 100
 
         iptables -w -t mangle -N XRAY
-        for ip in $(ip address | grep -w inet | awk '{print $2}'); do
-            iptables -w -t mangle -A XRAY -p tcp -d $ip -j RETURN
-            iptables -w -t mangle -A XRAY -p udp ! --dport 53 -d $ip -j RETURN
-        done
+        iptables -w -t mangle -A XRAY -m addrtype --dst-type LOCAL -j RETURN
         iptables -w -t mangle -A XRAY -p tcp -j TPROXY --on-port 12345 --tproxy-mark 1
         iptables -w -t mangle -A XRAY -p udp -j TPROXY --on-port 12345 --tproxy-mark 1
         iptables -w -t mangle -A PREROUTING -j XRAY
 
         iptables -w -t mangle -N XRAY_MASK
         iptables -w -t mangle -A XRAY_MASK -m owner --gid-owner 23333 -j RETURN
-        for ip in $(ip address | grep -w inet | awk '{print $2}'); do
-            iptables -w -t mangle -A XRAY_MASK -p tcp -d $ip -j RETURN
-            iptables -w -t mangle -A XRAY_MASK -p udp ! --dport 53 -d $ip -j RETURN
-        done
+        iptables -w -t mangle -A XRAY_MASK -m addrtype --dst-type LOCAL -j RETURN
         iptables -w -t mangle -A XRAY_MASK -p tcp -j MARK --set-mark 1
         iptables -w -t mangle -A XRAY_MASK -p udp -j MARK --set-mark 1
         iptables -w -t mangle -A OUTPUT -j XRAY_MASK
