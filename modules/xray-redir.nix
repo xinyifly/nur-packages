@@ -50,6 +50,7 @@ let
       mux = { enabled = true; };
     } else
       { }) cfg.servers;
+  openai = lib.findFirst (o: o.tag == "openai") null outbounds;
   defaults = {
     inbounds = [{
       port = 12345;
@@ -59,6 +60,10 @@ let
         followRedirect = true;
       };
       streamSettings = { sockopt = { tproxy = "tproxy"; }; };
+      sniffing = {
+        enabled = openai != null;
+        destOverride = [ "http" "tls" ];
+      };
     }];
     outbounds = outbounds ++ [
       {
@@ -78,11 +83,11 @@ let
         }
         "8.8.8.8"
         "1.1.1.1"
-        {
-          address = "8.8.4.4";
-          domains = [ "domain:openai.com" ];
-        }
-      ];
+      ] ++ (if openai != null then [{
+        address = "8.8.4.4";
+        domains = [ "domain:openai.com" ];
+      }] else
+        [ ]);
     };
     routing = {
       rules = [
@@ -98,12 +103,19 @@ let
           ip = [ "geoip:private" "geoip:cn" ];
           outboundTag = "direct";
         }
+      ] ++ (if openai != null then [
         {
           type = "field";
-          ip = [ "8.8.4.4" "104.18.2.161" "104.18.3.161" ];
-          outboundTag = "us";
+          ip = [ "8.8.4.4" ];
+          outboundTag = "openai";
         }
-      ];
+        {
+          type = "field";
+          domain = [ "domain:openai.com" ];
+          outboundTag = "openai";
+        }
+      ] else
+        [ ]);
     };
   };
 in {
@@ -154,7 +166,7 @@ in {
       in recursiveMerge [ cfg.settings defaults ];
     };
     systemd.services.xray = {
-      path = with pkgs; [ iproute2 iptables ];
+      path = with pkgs; [ iproute2 iptables iputils ];
       serviceConfig = {
         User = "root";
         Group = "xray";
@@ -162,6 +174,8 @@ in {
         LimitNOFILE = 65536;
       };
       preStart = ''
+        until ping -c1 -W1 223.5.5.5 > /dev/null; do sleep 1; done
+
         ip rule add fwmark 1 table 100
         ip route add local 0.0.0.0/0 dev lo table 100
 
