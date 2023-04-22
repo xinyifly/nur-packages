@@ -61,8 +61,8 @@ let
       };
       streamSettings = { sockopt = { tproxy = "tproxy"; }; };
       sniffing = {
-        enabled = openai != null;
-        destOverride = [ "http" "tls" ];
+        enabled = true;
+        destOverride = [ "http" "tls" "quic" ];
       };
     }];
     outbounds = outbounds ++ [
@@ -90,6 +90,7 @@ let
         [ ]);
     };
     routing = {
+      domainStrategy = "IPOnDemand";
       rules = [
         {
           type = "field";
