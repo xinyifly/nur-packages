@@ -140,20 +140,34 @@ in {
     in {
       enable = true;
       package = with pkgs;
-        (stdenv.mkDerivation rec {
-          name = "xray-${version}";
+        let
           version = "1.7.5";
-          src = fetchzip {
-            url = "https://github.com/XTLS/Xray-core/releases/download/"
-              + "v${version}/Xray-linux-64.zip";
-            hash = "sha256-ZCkHZcV9hwATXRVAHZ/hj8CotE/lDU9WQal0K5bLBvM=";
-            stripRoot = false;
+          src = fetchFromGitHub {
+            owner = "XTLS";
+            repo = "Xray-core";
+            rev = "v${version}";
+            sha256 = "sha256-WCku/7eczcsGiIuTy0sSQKUKXlH14TpdVg2/ZPdaiHQ=";
           };
-          installPhase = ''
-            mkdir -p $out/bin
-            cp xray geoip.dat geosite.dat $out/bin/
-          '';
-        });
+          assetsDrv = symlinkJoin {
+            name = "v2ray-assets";
+            paths = [ v2ray-geoip v2ray-domain-list-community ];
+          };
+        in xray.override {
+          buildGoModule = args:
+            buildGoModule (args // {
+              inherit src version;
+              vendorSha256 =
+                "sha256-2P7fI7fUnShsAl95mPiJgtr/eobt+DMmaoxZcox0eu8=";
+              installPhase = ''
+                runHook preInstall
+                install -Dm555 "$GOPATH"/bin/main $out/bin/xray
+                wrapProgram $out/bin/xray \
+                  --suffix XRAY_LOCATION_ASSET : $assetsDrv/share/v2ray
+                runHook postInstall
+              '';
+              patches = [ ./xray-redir/0001-fix-dns-empty-response.patch ];
+            });
+        };
       settings = let
         recursiveMerge = sets:
           with lib;

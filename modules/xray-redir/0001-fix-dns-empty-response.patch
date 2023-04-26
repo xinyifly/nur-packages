@@ -1,0 +1,25 @@
+From 0f31da4bd7c5f832ef1e69ff3149f54fb474ad51 Mon Sep 17 00:00:00 2001
+From: Zeyu Chen <xinyifly@live.cn>
+Date: Wed, 26 Apr 2023 22:35:12 +0800
+Subject: [PATCH] fix: dns empty response
+
+---
+ app/dns/dns.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/app/dns/dns.go b/app/dns/dns.go
+index af5f285..6efcb82 100644
+--- a/app/dns/dns.go
++++ b/app/dns/dns.go
+@@ -215,7 +215,7 @@ func (s *DNS) LookupIP(domain string, option dns.IPOption) ([]net.IP, error) {
+ 			newError("failed to lookup ip for domain ", domain, " at server ", client.Name()).Base(err).WriteToLog()
+ 			errs = append(errs, err)
+ 		}
+-		if err != context.Canceled && err != context.DeadlineExceeded && err != errExpectedIPNonMatch {
++		if err != context.Canceled && err != context.DeadlineExceeded && err != errExpectedIPNonMatch && err != dns.ErrEmptyResponse {
+ 			return nil, err
+ 		}
+ 	}
+-- 
+2.38.4
+
