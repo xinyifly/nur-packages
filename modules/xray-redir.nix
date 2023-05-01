@@ -141,12 +141,12 @@ in {
       enable = true;
       package = with pkgs;
         let
-          version = "1.7.5";
+          version = "1.8.1";
           src = fetchFromGitHub {
             owner = "XTLS";
             repo = "Xray-core";
-            rev = "v${version}";
-            sha256 = "sha256-WCku/7eczcsGiIuTy0sSQKUKXlH14TpdVg2/ZPdaiHQ=";
+            rev = "bfd5da2f0020e9856602c1d624cdf2e7914e545e";
+            sha256 = "sha256-/e0sJnbzbIERTc3/QjzMVqULwCERAo8eF5coIxC6hDA=";
           };
           assetsDrv = symlinkJoin {
             name = "v2ray-assets";
@@ -157,7 +157,7 @@ in {
             buildGoModule (args // {
               inherit src version;
               vendorSha256 =
-                "sha256-2P7fI7fUnShsAl95mPiJgtr/eobt+DMmaoxZcox0eu8=";
+                "sha256-IMkcV1R9PNtA46H7tof+cXzlEUZWTXcp74ah2CI7YY0=";
               installPhase = ''
                 runHook preInstall
                 install -Dm555 "$GOPATH"/bin/main $out/bin/xray
@@ -165,7 +165,6 @@ in {
                   --suffix XRAY_LOCATION_ASSET : $assetsDrv/share/v2ray
                 runHook postInstall
               '';
-              patches = [ ./xray-redir/0001-fix-dns-empty-response.patch ];
             });
         };
       settings = let
