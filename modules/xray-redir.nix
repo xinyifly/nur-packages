@@ -78,7 +78,7 @@ let
     dns = {
       servers = [
         {
-          address = "localhost";
+          address = cfg.dns;
           expectIPs =
             [ "10.0.0.0/8" "172.16.0.0/12" "192.168.0.0/16" "100.64.0.0/10" ]
             ++ [ "geoip:cn" ];
@@ -130,6 +130,10 @@ in {
           default = false;
         };
         servers = mkOption { type = listOf attrs; };
+        dns = mkOption {
+          type = uniq string;
+          default = "localhost";
+        };
         settings = mkOption {
           type = attrs;
           default = { };
