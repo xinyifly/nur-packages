@@ -61,7 +61,7 @@ let
       };
       streamSettings = { sockopt = { tproxy = "tproxy"; }; };
       sniffing = {
-        enabled = true;
+        enabled = cfg.sniff;
         destOverride = [ "http" "tls" "quic" ];
       };
     }];
@@ -133,6 +133,10 @@ in {
         dns = mkOption {
           type = uniq string;
           default = "localhost";
+        };
+        sniff = mkOption {
+          type = bool;
+          default = true;
         };
         settings = mkOption {
           type = attrs;
