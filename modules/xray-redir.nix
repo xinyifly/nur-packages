@@ -199,35 +199,43 @@ in {
         LimitNOFILE = 65536;
       };
       preStart = ''
-        until ping -c1 -W1 223.5.5.5 > /dev/null; do sleep 1; done
+        until ping -c1 -W1 223.5.5.5 &> /dev/null; do sleep 1; done
 
         ip rule add fwmark 1 table 100
         ip route add local 0.0.0.0/0 dev lo table 100
 
-        iptables -w -t mangle -N XRAY
-        iptables -w -t mangle -A XRAY -m addrtype --dst-type LOCAL -j RETURN
-        iptables -w -t mangle -A XRAY -p tcp -j TPROXY --on-port 12345 --tproxy-mark 1
-        iptables -w -t mangle -A XRAY -p udp -j TPROXY --on-port 12345 --tproxy-mark 1
-        iptables -w -t mangle -A PREROUTING -j XRAY
+        mangle() {
+            iptables -w -t mangle "$@"
+        }
 
-        iptables -w -t mangle -N XRAY_MASK
-        iptables -w -t mangle -A XRAY_MASK -m owner --gid-owner 23333 -j RETURN
-        iptables -w -t mangle -A XRAY_MASK -m addrtype --dst-type LOCAL -j RETURN
-        iptables -w -t mangle -A XRAY_MASK -p tcp -j MARK --set-mark 1
-        iptables -w -t mangle -A XRAY_MASK -p udp -j MARK --set-mark 1
-        iptables -w -t mangle -A OUTPUT -j XRAY_MASK
+        mangle -N XRAY
+        mangle -A XRAY -m addrtype --dst-type LOCAL -j RETURN
+        mangle -A XRAY -p tcp -j TPROXY --on-port 12345 --tproxy-mark 1
+        mangle -A XRAY -p udp -j TPROXY --on-port 12345 --tproxy-mark 1
+        mangle -A PREROUTING -j XRAY
+
+        mangle -N XRAY_MASK
+        mangle -A XRAY_MASK -m owner --gid-owner 23333 -j RETURN
+        mangle -A XRAY_MASK -m addrtype --dst-type LOCAL -j RETURN
+        mangle -A XRAY_MASK -p tcp -j MARK --set-mark 1
+        mangle -A XRAY_MASK -p udp -j MARK --set-mark 1
+        mangle -A OUTPUT -j XRAY_MASK
       '';
       preStop = ''
         ip rule del fwmark 1 table 100
         ip route del local 0.0.0.0/0 dev lo table 100
 
-        iptables -w -t mangle -D PREROUTING -j XRAY
-        iptables -w -t mangle -F XRAY
-        iptables -w -t mangle -X XRAY
+        mangle() {
+            iptables -w -t mangle "$@"
+        }
 
-        iptables -w -t mangle -D OUTPUT -j XRAY_MASK
-        iptables -w -t mangle -F XRAY_MASK
-        iptables -w -t mangle -X XRAY_MASK
+        mangle -D PREROUTING -j XRAY
+        mangle -F XRAY
+        mangle -X XRAY
+
+        mangle -D OUTPUT -j XRAY_MASK
+        mangle -F XRAY_MASK
+        mangle -X XRAY_MASK
       '';
     };
   };
