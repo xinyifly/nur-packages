@@ -76,6 +76,7 @@ let
       }
     ];
     dns = {
+      hosts = { "domain:localhost" = "127.0.0.1"; };
       servers = [
         {
           address = cfg.dns;
