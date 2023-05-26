@@ -135,6 +135,16 @@ in {
           type = uniq string;
           default = "localhost";
         };
+        ignore = {
+          cidrs = mkOption {
+            type = listOf string;
+            default = [ ];
+          };
+          groups = mkOption {
+            type = listOf string;
+            default = [ ];
+          };
+        };
         sniff = mkOption {
           type = bool;
           default = true;
@@ -210,13 +220,21 @@ in {
 
         mangle -N XRAY
         mangle -A XRAY -m addrtype --dst-type LOCAL -j RETURN
+        for cidr in ${toString cfg.ignore.cidrs}; do
+            mangle -A XRAY -d $cidr -j RETURN
+        done
         mangle -A XRAY -p tcp -j TPROXY --on-port 12345 --tproxy-mark 1
         mangle -A XRAY -p udp -j TPROXY --on-port 12345 --tproxy-mark 1
         mangle -A PREROUTING -j XRAY
 
         mangle -N XRAY_MASK
-        mangle -A XRAY_MASK -m owner --gid-owner 23333 -j RETURN
         mangle -A XRAY_MASK -m addrtype --dst-type LOCAL -j RETURN
+        for cidr in ${toString cfg.ignore.cidrs}; do
+            mangle -A XRAY_MASK -d $cidr -j RETURN
+        done
+        for group in ${toString ([ "xray" ] ++ cfg.ignore.groups)}; do
+            mangle -A XRAY_MASK -m owner --gid-owner $group -j RETURN
+        done
         mangle -A XRAY_MASK -p tcp -j MARK --set-mark 1
         mangle -A XRAY_MASK -p udp -j MARK --set-mark 1
         mangle -A OUTPUT -j XRAY_MASK
