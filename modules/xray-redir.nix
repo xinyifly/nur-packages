@@ -211,6 +211,7 @@ in {
         Group = "xray";
         DynamicUser = lib.mkForce false;
         LimitNOFILE = 65536;
+        TimeoutStartSec = "infinity";
       };
       preStart = ''
         until ping -c1 -W1 223.5.5.5 &> /dev/null; do sleep 1; done
