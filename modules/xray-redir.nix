@@ -140,6 +140,10 @@ in {
             type = listOf string;
             default = [ ];
           };
+          ports = mkOption {
+            type = listOf int;
+            default = [ ];
+          };
           groups = mkOption {
             type = listOf string;
             default = [ ];
@@ -231,6 +235,10 @@ in {
         mangle -A XRAY_MASK -m addrtype --dst-type LOCAL -j RETURN
         for cidr in ${toString cfg.ignore.cidrs}; do
             mangle -A XRAY_MASK -d $cidr -j RETURN
+        done
+        for port in ${toString cfg.ignore.ports}; do
+            mangle -A XRAY_MASK -p tcp --sport $port -j RETURN
+            mangle -A XRAY_MASK -p udp --sport $port -j RETURN
         done
         for group in ${toString ([ "xray" ] ++ cfg.ignore.groups)}; do
             mangle -A XRAY_MASK -m owner --gid-owner $group -j RETURN
