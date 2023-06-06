@@ -1,1 +1,4 @@
-{ xray-redir = ./xray-redir.nix; }
+{
+  xray-redir = ./xray-redir.nix;
+  joycond-cemuhook = ./joycond-cemuhook.nix;
+}
